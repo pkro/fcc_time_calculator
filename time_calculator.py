@@ -20,7 +20,7 @@ add_time("6:30 PM", "205:12")
 
 full_day_minutes = 24 * 60
 # no libs to be used, otherwise datetime would have these
-weekdays = ['', 'monday', 'tuesday', 'wednesday',
+weekdays = ['monday', 'tuesday', 'wednesday',
             'thursday', 'friday', 'saturday', 'sunday']
 
 
@@ -60,31 +60,69 @@ def make_time(minutes):
     h = minutes // 60
     m = minutes % 60
 
-    period = "AM"
-    if h >= 12:
-        if h > 12:
-            h = h - 12
+    if h >= 0 and (h < 12 or h == 12 and m == 0):
+        period = "AM"
+    else:
         period = "PM"
+
+    if h > 13:
+        h = h - 12
+
+    if h == 0 and period == "AM":
+        h = 12
     return (h, m, period, days_added)
 
 
 def pad_time(h, m):
+    """pads minutes in h:m string
+
+    Args:
+        h (int): hours
+        m (int): minutes
+
+    Returns:
+        striung: time string with minutes padded
+    """
     return f'{str(h)}:{str(m).zfill(2)}'
 
 
-def add_time(start, duration, weekday=""):
-    weekday = weekday.lower()
+def weekday_after(start_day, days=0):
+    if start_day == "":
+        return ""
+    weekday = start_day.lower()
     weekday_idx = weekdays.index(weekday)
-    (start_h, start_m, period) = split_time(start)
-    start_minutes = start_h * 60 + start_m
-    duration_split = split_time(duration)
-    duration_minutes = duration_split[0]*60 + duration_split[1]
-    (end_h, end_m, period, days_added) = make_time(duration_minutes)
+    weekday_idx = weekday_idx + days
+    new_weekday_idx = weekday_idx % 7
+    return weekdays[new_weekday_idx].capitalize()
 
-    new_weekday = ''
-    days_later = ''
-    if days_added > 0:
-        days_later = f' ({days_added} days later)'
+
+def time_in_minutes(iterable):
+    return iterable[0] * 60 + iterable[1]
+
+
+def get_days_later(days):
+    days_later = ""
+    if days > 1:
+        days_later = f' ({days} days later)'
+    if days == 1:
+        days_later = ' (next day)'
+    return days_later
+
+
+def add_time(start, duration, weekday=""):
+
+    (start_h, start_m, period) = split_time(start)
+    start_minutes = time_in_minutes([start_h, start_m])
+    duration_split = split_time(duration)
+    duration_minutes = time_in_minutes(duration_split)
+    (end_h, end_m, period, days_added) = make_time(
+        start_minutes + duration_minutes)
+
+    new_weekday = weekday_after(weekday, days_added)
+    if new_weekday:
+        new_weekday = f', {new_weekday}'
+
+    days_later = get_days_later(days_added)
 
     new_time = f'{pad_time(end_h, end_m)} {period}{new_weekday}{days_later}'
     return new_time
